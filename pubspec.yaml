@@ -28,7 +28,7 @@ dependencies:
   url_launcher: ^6.3.0
 
   # Voix de bienvenue (synthèse vocale)
-  flutter_tts: ^4.2.0
+  flutter_tts: ">=4.0.2 <5.0.0"
 
   # Notifications locales
   flutter_local_notifications: ^17.2.2
@@ -48,9 +48,9 @@ dependencies:
   archive: ^3.6.1
 
   # Catalogue partagé entre tous les téléphones (Firebase)
-  firebase_core: ">=3.8.0 <7.0.0"
-  cloud_firestore: ">=5.6.0 <7.0.0"
-  firebase_auth: ">=5.4.0 <7.0.0"
+  firebase_core: ">=3.8.0 <4.0.0"
+  cloud_firestore: ">=5.6.0 <6.0.0"
+  firebase_auth: ">=5.4.0 <6.0.0"
 
 flutter:
   uses-material-design: true
