@@ -484,7 +484,7 @@ class Exports {
     final tmp = await getTemporaryDirectory();
     final f = File(p.join(tmp.path, 'reine_creation_${DateFormat('yyyyMMdd_HHmm').format(DateTime.now())}.xlsx'));
     await f.writeAsBytes(bytes);
-    await Share.shareXFiles([XFile(f.path)], text: 'Export Reine Creation');
+    await SharePlus.instance.share(ShareParams(files: [XFile(f.path)], text: 'Export Reine Creation'));
   }
 
   /// Sauvegarde complète (base SQLite + photos) dans un .zip à enregistrer / partager.
@@ -504,7 +504,7 @@ class Exports {
     final tmp = await getTemporaryDirectory();
     final f = File(p.join(tmp.path, 'sauvegarde_reine_creation_${DateFormat('yyyyMMdd_HHmm').format(DateTime.now())}.zip'));
     await f.writeAsBytes(out);
-    await Share.shareXFiles([XFile(f.path)], text: 'Sauvegarde Reine Creation');
+    await SharePlus.instance.share(ShareParams(files: [XFile(f.path)], text: 'Sauvegarde Reine Creation'));
   }
 
   /// Restaure un .zip créé par [backup]. Remplace toutes les données actuelles.
