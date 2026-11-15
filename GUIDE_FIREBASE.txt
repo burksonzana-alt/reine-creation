@@ -1,0 +1,44 @@
+CATALOGUE PARTAGE AUTOMATIQUE - GUIDE FIREBASE (sans carte bancaire)
+====================================================================
+Ce que ça fait : chaque modèle ou photo ajouté au catalogue sur un téléphone
+arrive tout seul sur les autres téléphones qui ont l'application (v1.4.0 ou
+plus) et internet. Les clients, commandes, paiements et reçus restent privés.
+Les vidéos restent sur le téléphone qui les a ajoutées.
+
+A) CREER LE PROJET FIREBASE (sur le téléphone, navigateur, compte Google)
+ 1. Ouvrir https://console.firebase.google.com et se connecter.
+ 2. "Créer un projet" > nom : madame-zana-couture > Continuer.
+    (Google Analytics : désactiver) > Créer le projet.
+ 3. Sur la page du projet, cliquer sur l'icône Android (robot vert).
+    - Nom du package Android : com.reinecreation.reine_creation   (EXACTEMENT)
+    - Surnom : Madame ZANA Couture > "Enregistrer l'application"
+    - Télécharger "google-services.json" (il va dans Téléchargements).
+    - Ignorer les étapes suivantes (Suivant > Suivant > Continuer vers la console).
+ 4. Menu "Créer" (ou "Build") > "Firestore Database" > "Créer une base de données"
+    - Choisir un emplacement proche (ex : eur3 Europe) > Suivant
+    - Mode PRODUCTION > Créer.
+ 5. Dans Firestore > onglet "Règles" : effacer tout, coller le contenu du
+    fichier firebase/firestore.rules (dans ce projet) > "Publier".
+ 6. Menu "Authentication" > "Commencer" > onglet "Sign-in method" >
+    "Anonyme" > Activer > Enregistrer.
+
+B) AJOUTER LE FICHIER AU PROJET ET COMPILER (Termux)
+    cp ~/storage/downloads/google-services.json ~/reine_creation/
+    cd ~/reine_creation
+    git add -A
+    git -c user.name="ZANA" -c user.email="zana@example.com" commit -qm "v1.4.0 catalogue partagé"
+    git push -u origin main --force
+  Puis les mêmes commandes qu'avant (attendre le ✓, télécharger, installer).
+
+C) VERIFIER
+  Installer la même version sur 2 téléphones, ouvrir Plus > Paramètres :
+  la ligne "Catalogue partagé" doit afficher "À jour".
+  Ajouter un modèle avec photo sur le téléphone 1 : il apparaît sur le
+  téléphone 2 en quelques secondes (ouvrir l'appli, connexion internet active).
+
+REMARQUES
+ - Les modèles déjà présents sur chaque téléphone sont envoyés au serveur :
+   si les deux téléphones avaient les mêmes modèles, supprimez les doublons.
+ - Supprimer un modèle ou une photo le supprime sur tous les téléphones.
+ - Photos trop lourdes (plus de 650 Ko) : non envoyées (l'appli le signale).
+ - Le plan gratuit Firebase suffit largement pour un atelier.
