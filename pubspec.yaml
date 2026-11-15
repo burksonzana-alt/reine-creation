@@ -1,7 +1,7 @@
 name: reine_creation
 description: "Madame ZANA Couture - gestion complète d'un atelier de couture"
 publish_to: 'none'
-version: 1.5.0+6
+version: 1.5.1+7
 
 environment:
   sdk: ">=3.3.0 <4.0.0"
