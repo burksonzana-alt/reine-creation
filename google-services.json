@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "269099942379",
+    "project_id": "madame-zana-couture-1058c",
+    "storage_bucket": "madame-zana-couture-1058c.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:269099942379:android:ee3caf709a589ed7f799ae",
+        "android_client_info": {
+          "package_name": "com.reinecreation.reine_creation"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBtSRx0U2LliNFUVk5Jwb9EEoUo8WlYFYw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

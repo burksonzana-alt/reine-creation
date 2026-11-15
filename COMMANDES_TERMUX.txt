@@ -1,0 +1,69 @@
+MADAME ZANA COUTURE v1.6.0 - COMMANDES TERMUX
+=============================================
+Principe : Termux envoie le projet sur GitHub, GitHub compile l'APK dans le
+cloud (6 à 10 min) ET le publie comme "version". Ensuite TOUS les téléphones
+qui ont l'application proposent la mise à jour tout seuls au démarrage.
+
+0) Une seule fois : installer les outils et l'accès au stockage
+   pkg update -y && pkg install -y git gh
+   termux-setup-storage
+   gh auth login        (GitHub.com > HTTPS > se connecter avec le navigateur)
+   gh auth setup-git
+
+   Le dépôt doit être PUBLIC (sinon les téléphones ne voient pas les mises à jour) :
+   gh repo edit burksonzana-alt/reine-creation --visibility public --accept-visibility-change-consequences
+
+1) Extraire le projet (le .tar.gz est dans Téléchargements)
+   cd ~
+   rm -rf ~/reine_creation
+   tar xzf ~/storage/downloads/madame_zana_couture_v1_6.tar.gz
+   cd reine_creation
+   (si vous utilisez Firebase : recopier ici votre google-services.json)
+   cp ~/storage/downloads/google-services.json ~/reine_creation/ 2>/dev/null
+
+2) Envoyer le projet sur GitHub (lance la compilation)
+   git init -q
+   git add -A
+   git -c user.name="ZANA" -c user.email="zana@example.com" commit -qm "v1.6.0 mise à jour automatique"
+   git branch -M main
+   git remote remove origin 2>/dev/null
+   git remote add origin https://github.com/burksonzana-alt/reine-creation.git
+   git push -u origin main --force
+
+3) Attendre la fin de la compilation
+   sleep 20
+   ID=$(gh run list -L 1 --json databaseId -q '.[0].databaseId')
+   gh run watch $ID --exit-status
+
+4) Télécharger l'APK et le copier dans le stockage du téléphone
+   gh run download $ID -n madame-zana-couture-apk -D ~/apk
+   cp ~/apk/app-release.apk ~/storage/downloads/MadameZANACouture.apk
+
+5) Installer
+   termux-open ~/storage/downloads/MadameZANACouture.apk
+   (ou ouvrir MadameZANACouture.apk dans Téléchargements)
+
+INSTALLATION DE LA v1.6.0 :
+   La clé de signature est fixe depuis la 1.5.0 : la 1.6.0 s'installe PAR-DESSUS
+   la 1.5.0, sans rien désinstaller et sans rien perdre.
+   (Si Android répond "Application non installée", la version déjà installée est
+   antérieure à la 1.5.0 : faire Plus > Paramètres > Sauvegarde, désinstaller,
+   installer, puis "Restaurer".)
+
+PUBLIER LES MISES A JOUR SUIVANTES (pour tous les téléphones) :
+   1. Dans pubspec.yaml : augmenter "version: 1.6.0+7" (ex : 1.6.1+8).
+      Mettre aussi la même version dans lib/ui.dart (kAppVersion = '1.6.1').
+      Commande rapide :
+        sed -i 's/^version: .*/version: 1.6.1+8/' pubspec.yaml
+        sed -i "s/kAppVersion = '[0-9.]*'/kAppVersion = '1.6.1'/" lib/ui.dart
+   2. Modifier RELEASE_NOTES.md (texte affiché aux utilisateurs).
+      Ajouter [OBLIGATOIRE] dans ce texte pour empêcher d'ignorer la mise à jour.
+   3. Refaire les étapes 2 et 3 ci-dessus. Quand la compilation est finie, chaque
+      téléphone affiche "Nouvelle version" à l'ouverture de l'appli (ou
+      Plus > Paramètres > Vérifier les mises à jour) > "Mettre à jour" >
+      le navigateur télécharge l'APK > ouvrir > Installer.
+   (Android demande une fois d'autoriser le navigateur à installer des applis.)
+
+COMPILER DIRECTEMENT DANS TERMUX (seulement si Flutter y est installé) :
+   cd ~/reine_creation && bash build_local.sh
+   (l'APK est copié dans Téléchargements sous le nom MadameZANACouture.apk)
