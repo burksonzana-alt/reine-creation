@@ -1,4 +1,4 @@
-# Madame ZANA Couture (v1.5.0)
+# Madame ZANA Couture (v1.7.0)
 
 Développeur : ZANA - 76442614
 
@@ -48,3 +48,7 @@ Application Flutter (Android) de gestion d'atelier de couture.
 - Le workflow GitHub publie automatiquement l'APK en « Release » à chaque envoi. Le dépôt doit être public.
 - Pour chaque nouvelle version : augmenter `version:` dans `pubspec.yaml` et `kAppVersion` dans `lib/ui.dart`.
 - Limites : non compilé ici (pas de Flutter disponible) ; le téléchargement passe par le navigateur du téléphone.
+
+## Nouveautés 1.7.0
+- Vignette de la vidéo comme une photo ; appui long sur la vidéo pour la supprimer (avec confirmation).
+- Page de consultation d'un modèle : on balaie pour voir toutes les photos puis la vidéo ; galerie plein écran avec loupe.

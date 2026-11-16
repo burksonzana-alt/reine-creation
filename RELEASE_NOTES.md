@@ -1,4 +1,5 @@
-Version 1.6.0 :
-- Nouveau modèle : on ouvre la galerie une seule fois et on coche jusqu'à 5 photos (et une vidéo) d'un coup. Plus de croix rouge : appui long sur une photo pour la retirer.
-- Voix de bienvenue « Bienvenue chez Madame ZANA Couture, votre élégance notre priorité », activable/désactivable (haut-parleur en haut de l'accueil ou Paramètres).
+Version 1.7.0 :
+- Catalogue : la vidéo s'affiche en vignette (première image) comme une photo, sans cliquer.
+- Appui long sur la vidéo d'un modèle, puis confirmation, pour la supprimer.
+- Toucher un modèle ouvre une page où l'on balaie à gauche/droite pour voir les 5 photos puis la vidéo. Toucher une photo ouvre la galerie plein écran (loupe pour zoomer). Le crayon permet de modifier le modèle.
 - Vos données sont conservées.

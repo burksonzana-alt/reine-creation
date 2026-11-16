@@ -16,7 +16,8 @@ import 'ui.dart';
 // =====================================================================
 String _modelsSql(String extra) => '''SELECT m.*,
       (SELECT COUNT(*) FROM modele_media WHERE modele_id=m.id AND type='video') AS nvid,
-      (SELECT COUNT(*) FROM modele_media WHERE modele_id=m.id AND type='photo') AS nph
+      (SELECT COUNT(*) FROM modele_media WHERE modele_id=m.id AND type='photo') AS nph,
+      (SELECT fichier FROM modele_media WHERE modele_id=m.id AND type='video' ORDER BY id LIMIT 1) AS vid
     FROM modeles m WHERE m.atelier_id=? $extra ORDER BY m.nom COLLATE NOCASE''';
 
 Widget _badge(IconData i, String t) => Container(
@@ -80,13 +81,15 @@ class _ModelsPageState extends State<ModelsPage> {
                         clipBehavior: Clip.antiAlias,
                         child: InkWell(
                           onTap: () => Navigator.push(
-                              c, MaterialPageRoute(builder: (_) => ModelFormPage(modelId: r['id'] as int))),
+                              c, MaterialPageRoute(builder: (_) => ModelViewPage(r['id'] as int))),
                           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                             Expanded(
                               child: Stack(fit: StackFit.expand, children: [
                                 imageFile(s(r['image'])) != null
                                     ? Image.file(imageFile(s(r['image']))!, fit: BoxFit.cover)
-                                    : Container(color: kViolet.withAlpha(30), child: const Icon(Icons.style, size: 48, color: kViolet)),
+                                    : imageFile(s(r['vid'])) != null
+                                        ? VideoThumb(s(r['vid']))
+                                        : Container(color: kViolet.withAlpha(30), child: const Icon(Icons.style, size: 48, color: kViolet)),
                                 Positioned(
                                   right: 6,
                                   bottom: 6,
@@ -116,6 +119,73 @@ class _ModelsPageState extends State<ModelsPage> {
       ]),
     );
   }
+}
+
+/// Consultation d'un modèle : on balaie pour voir les photos et la vidéo.
+class ModelViewPage extends StatelessWidget {
+  final int modelId;
+  const ModelViewPage(this.modelId, {super.key});
+
+  @override
+  Widget build(BuildContext context) => DbBuilder<List<Object>>(
+        load: () async => [
+          await Db.i.q('SELECT * FROM modeles WHERE id=?', [modelId]),
+          await Db.i.q('SELECT * FROM modele_media WHERE modele_id=? ORDER BY id', [modelId]),
+        ],
+        builder: (c, data) {
+          final rows = data[0] as List<Map<String, Object?>>;
+          if (rows.isEmpty) return AppScaffold(appBar: AppBar(), body: const SizedBox());
+          final r = rows.first;
+          final ms = data[1] as List<Map<String, Object?>>;
+          final photos = ms.where((m) => s(m['type']) == 'photo').map((m) => s(m['fichier'])).toList();
+          if (photos.isEmpty && s(r['image']).isNotEmpty) photos.add(s(r['image']));
+          final vids = ms.where((m) => s(m['type']) == 'video').map((m) => s(m['fichier'])).toList();
+          final items = <MediaItem>[
+            for (final n in photos) MediaItem(n, false),
+            if (vids.isNotEmpty) MediaItem(vids.first, true),
+          ];
+          return AppScaffold(
+            appBar: AppBar(title: Text(s(r['nom'])), actions: [
+              IconButton(
+                tooltip: tr('Modifier le modèle'),
+                icon: const Icon(Icons.edit),
+                onPressed: () =>
+                    Navigator.push(c, MaterialPageRoute(builder: (_) => ModelFormPage(modelId: modelId))),
+              ),
+            ]),
+            body: ListView(children: [
+              SizedBox(
+                height: 400,
+                child: items.isEmpty
+                    ? Container(
+                        color: kViolet.withAlpha(30),
+                        child: const Center(child: Icon(Icons.style, size: 72, color: kViolet)))
+                    : MediaPager(items),
+              ),
+              Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Text(s(r['nom']), style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 4),
+                  Text(tr(s(r['categorie']))),
+                  const SizedBox(height: 8),
+                  Text(money(d(r['prix'])),
+                      style: const TextStyle(fontSize: 20, color: kViolet, fontWeight: FontWeight.w700)),
+                  if (s(r['description']).isNotEmpty) ...[
+                    const SizedBox(height: 12),
+                    Text(s(r['description'])),
+                  ],
+                  const SizedBox(height: 8),
+                  Text(
+                    '${photos.length} ${tr('photo(s)')}${vids.isNotEmpty ? ' + 1 ${tr('vidéo')}' : ''} - ${tr('balayez pour tout voir')}',
+                    style: const TextStyle(fontSize: 12, color: Colors.grey),
+                  ),
+                ]),
+              ),
+            ]),
+          );
+        },
+      );
 }
 
 class ModelFormPage extends StatefulWidget {
@@ -223,73 +293,81 @@ class _ModelFormPageState extends State<ModelFormPage> {
     if (f != null && mounted) setState(() => video = f);
   }
 
-  Widget _photosBlock() => Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        sectionTitle('Photos du modèle'),
-        Text('${photos.length} / $maxPhotos', style: const TextStyle(fontSize: 12)),
-        if (photos.isNotEmpty)
-          Text(tr('Appui long sur une photo pour la retirer'), style: const TextStyle(fontSize: 11)),
+  List<MediaItem> get _items => [
+        for (final n in photos) MediaItem(n, false),
+        if (video != null) MediaItem(video!, true),
+      ];
+
+  void _openGallery(int i) =>
+      Navigator.push(context, MaterialPageRoute(builder: (_) => MediaGalleryPage(_items, initial: i)));
+
+  /// Appui long sur la vidéo : confirmation puis suppression.
+  Future<void> _deleteVideo() async {
+    if (!await confirm(context, tr('Supprimer cette vidéo ?'))) return;
+    final v = video;
+    if (v == null) return;
+    if (widget.modelId != null) {
+      await Db.i.delWhere('modele_media', "modele_id=? AND type='video'", [widget.modelId]);
+      bump();
+    }
+    try {
+      imageFile(v)?.deleteSync();
+    } catch (_) {}
+    if (!mounted) return;
+    setState(() => video = null);
+    toast(context, tr('Vidéo supprimée'));
+  }
+
+  Widget _addTile(Widget child, VoidCallback onTap) => InkWell(
+        onTap: onTap,
+        child: Container(
+          width: 96,
+          height: 96,
+          decoration: BoxDecoration(
+            border: Border.all(color: kViolet),
+            borderRadius: BorderRadius.circular(24),
+          ),
+          child: child,
+        ),
+      );
+
+  Widget _mediaBlock() => Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        sectionTitle('Photos et vidéo du modèle'),
+        Text('${photos.length} / $maxPhotos ${tr('photos')}${video != null ? ' + 1 ${tr('vidéo')}' : ''}',
+            style: const TextStyle(fontSize: 12)),
+        if (photos.isNotEmpty || video != null)
+          Text(tr('Appui long sur une photo ou la vidéo pour la retirer'), style: const TextStyle(fontSize: 11)),
         const SizedBox(height: 8),
         Wrap(spacing: 8, runSpacing: 8, children: [
           for (var i = 0; i < photos.length; i++)
             GestureDetector(
-              onTap: () => showPhoto(context, photos[i]),
+              onTap: () => _openGallery(i),
               onLongPress: () => _removePhoto(i),
               child: photoBox(photos[i], size: 96, icon: Icons.image),
             ),
+          // La vidéo s'affiche comme une photo (vignette) : touchez pour la lire, appui long pour la supprimer.
+          if (video != null)
+            GestureDetector(
+              onTap: () => _openGallery(photos.length),
+              onLongPress: _deleteVideo,
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(24),
+                child: SizedBox(width: 96, height: 96, child: VideoThumb(video!)),
+              ),
+            ),
           if (photos.length < maxPhotos || video == null)
             // Galerie : on coche plusieurs photos / vidéos d'un coup.
-            InkWell(
-              onTap: _addFromGallery,
-              child: Container(
-                width: 96,
-                height: 96,
-                decoration: BoxDecoration(
-                  border: Border.all(color: kViolet),
-                  borderRadius: BorderRadius.circular(24),
-                ),
-                child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-                  const Icon(Icons.photo_library, color: kViolet),
-                  const SizedBox(height: 4),
-                  Text(tr('Galerie'), style: const TextStyle(fontSize: 12, color: kViolet)),
-                ]),
-              ),
+            _addTile(
+              Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+                const Icon(Icons.photo_library, color: kViolet),
+                const SizedBox(height: 4),
+                Text(tr('Galerie'), style: const TextStyle(fontSize: 12, color: kViolet)),
+              ]),
+              _addFromGallery,
             ),
-          if (photos.length < maxPhotos)
-            InkWell(
-              onTap: _takePhoto,
-              child: Container(
-                width: 96,
-                height: 96,
-                decoration: BoxDecoration(
-                  border: Border.all(color: kViolet),
-                  borderRadius: BorderRadius.circular(24),
-                ),
-                child: const Icon(Icons.add_a_photo, color: kViolet),
-              ),
-            ),
+          if (photos.length < maxPhotos) _addTile(const Icon(Icons.add_a_photo, color: kViolet), _takePhoto),
+          if (video == null) _addTile(const Icon(Icons.videocam, color: kViolet), _addVideo),
         ]),
-      ]);
-
-  Widget _videoBlock() => Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        sectionTitle('Vidéo du modèle'),
-        if (video == null)
-          OutlinedButton.icon(
-            onPressed: _addVideo,
-            icon: const Icon(Icons.videocam),
-            label: Text(tr('Ajouter une vidéo')),
-          )
-        else
-          Card(
-            child: ListTile(
-              leading: const Icon(Icons.play_circle_fill, color: kViolet, size: 36),
-              title: Text(tr('Voir la vidéo')),
-              onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => VideoPage(video!))),
-              trailing: IconButton(
-                icon: const Icon(Icons.delete_outline),
-                onPressed: () => setState(() => video = null),
-              ),
-            ),
-          ),
       ]);
 
   @override
@@ -325,8 +403,7 @@ class _ModelFormPageState extends State<ModelFormPage> {
             ),
             field(desc, 'Description', lines: 3, icon: Icons.notes),
             field(prix, 'Prix (FCFA)', type: TextInputType.number, icon: Icons.payments),
-            _photosBlock(),
-            _videoBlock(),
+            _mediaBlock(),
             const SizedBox(height: 20),
             FilledButton(
               style: FilledButton.styleFrom(backgroundColor: kViolet, padding: const EdgeInsets.all(14)),
